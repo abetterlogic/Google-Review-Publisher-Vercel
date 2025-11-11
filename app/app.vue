@@ -3,9 +3,9 @@
     <div style="max-width: 42rem; margin: 0 auto; padding: 0 1rem;">
       <div style="background: #111111; border-radius: 1rem; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2); padding: 2rem; border: 1px solid #374151;">
         <div style="text-align: center; margin-bottom: 2rem;">
-          <img src="/logo.svg" alt="ABL Smart Tech" style="height: 3rem; margin: 0 auto 1rem;">
+          <h2 style="font-size: 1.5rem; font-weight: 800; color: #dc2626; margin: 0 auto 1rem; text-transform: uppercase; letter-spacing: 0.1em;">{{ $config.public.businessName }}</h2>
           <h1 style="font-size: 2rem; font-weight: 700; background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0;">Review Generator</h1>
-          <p style="color: #9ca3af; margin-top: 0.5rem; font-size: 1rem;">Generate authentic reviews for ABL Smart Tech</p>
+          <p style="color: #9ca3af; margin-top: 0.5rem; font-size: 1rem;">Generate authentic reviews for {{ $config.public.businessName }}</p>
         </div>
         
         <form v-if="!showReviews" @submit.prevent="generateReviews" style="display: flex; flex-direction: column; gap: 2rem;">
@@ -16,6 +16,17 @@
               <option value="">Select team leader</option>
               <option v-for="leader in teamLeaders" :key="leader.value" :value="leader.value">{{ leader.label }}</option>
             </select>
+          </div>
+
+          <div style="background: #1f1f1f; padding: 1.5rem; border-radius: 0.75rem; border: 1px solid #374151;">
+            <label style="display: block; font-size: 0.875rem; font-weight: 600; color: #f3f4f6; margin-bottom: 1rem;">🛒 What you brought *</label>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem;">
+              <label v-for="service in serviceOptions" :key="service.value" style="display: flex; align-items: center; padding: 0.75rem; background: #111111; border-radius: 0.5rem; border: 1px solid #374151; cursor: pointer; transition: all 0.2s;" :class="form.selectedServices.includes(service.value) ? 'selected-topic' : ''">
+                <input type="checkbox" :value="service.value" v-model="form.selectedServices" 
+                       style="margin-right: 0.75rem; width: 1.25rem; height: 1.25rem; accent-color: #dc2626;">
+                <span style="font-size: 0.875rem; color: #d1d5db; font-weight: 500;">{{ service.label }}</span>
+              </label>
+            </div>
           </div>
 
           <div style="background: #1f1f1f; padding: 1.5rem; border-radius: 0.75rem; border: 1px solid #374151;">
@@ -113,79 +124,41 @@ label:hover {
 <script setup>
 const form = ref({
   teamLeader: '',
-  selectedTopics: []
+  selectedTopics: [],
+  selectedServices: []
 })
 
 const showReviews = ref(false)
 const generatedReviews = ref([])
 const isLoading = ref(false)
 
-const teamLeaders = [
-  { label: 'Nishant', value: 'Nishant Ji' },
-  { label: 'Ankit', value: 'Ankit' },
-  { label: 'Gaurav', value: 'Gaurav' },
-  { label: 'Saurabh', value: 'Saurabh' }
-]
+const { public: { reviewTopics: topicsString, whatWeSell: servicesString, teamLeaders: leadersString } } = useRuntimeConfig()
 
-const reviewTopics = [
-  { label: 'Project delivery on time', value: 'delivery' },
-  { label: 'Communication and support quality', value: 'communication' },
-  { label: 'Technical expertise and innovation', value: 'technical' },
-  { label: 'Website or app design quality', value: 'design' },
-  { label: 'SEO and marketing performance', value: 'seo' },
-  { label: 'Value for money', value: 'value' },
-  { label: 'Problem-solving and flexibility', value: 'problem_solving' },
-  { label: 'Post-launch support', value: 'support' },
-  { label: 'Professionalism and reliability', value: 'professionalism' },
-  { label: 'Overall satisfaction', value: 'satisfaction' }
-]
+const teamLeaders = leadersString.split(',').map(leader => ({
+  label: leader.trim(),
+  value: leader.trim()
+}))
+const topicLabels = topicsString.split(',')
 
-const reviewTemplates = {
-  delivery: [
-    "ABL Smart Tech delivered our project right on schedule when others couldn't meet deadlines.",
-    "Unlike previous vendors who delayed everything, ABL completed our work on time perfectly."
-  ],
-  communication: [
-    "Great communication throughout - much better than our last service provider who barely responded.",
-    "ABL team was always available and responsive, unlike others who left us hanging."
-  ],
-  technical: [
-    "Their technical expertise solved problems that other companies couldn't handle.",
-    "Impressive innovation and technical skills - far superior to our previous developer."
-  ],
-  design: [
-    "Beautiful, modern design that exceeded expectations after disappointing experiences elsewhere.",
-    "Outstanding design quality - finally found a team that understands good UI/UX."
-  ],
-  seo: [
-    "SEO results improved dramatically after switching from our previous agency to ABL.",
-    "Marketing performance boosted significantly - wish we'd found them sooner."
-  ],
-  value: [
-    "Excellent value for money compared to overpriced competitors we tried before.",
-    "Fair pricing with quality results - much better deal than expensive alternatives."
-  ],
-  problem_solving: [
-    "ABL solved complex issues quickly while others struggled for weeks.",
-    "Flexible problem-solving approach that actually works, unlike rigid previous vendors."
-  ],
-  support: [
-    "Post-launch support is fantastic - available when needed unlike others who disappear.",
-    "Ongoing support and maintenance much better than previous company's poor service."
-  ],
-  professionalism: [
-    "Professional and reliable team - refreshing change from unprofessional experiences before.",
-    "Highly professional service that restored our faith after bad experiences elsewhere."
-  ],
-  satisfaction: [
-    "Completely satisfied with ABL's work after disappointing results from other companies.",
-    "Overall excellent experience - finally found a reliable tech partner."
-  ]
-}
+const reviewTopics = topicLabels.map((label, index) => ({
+  label: label.trim(),
+  value: `topic_${index}`
+}))
+
+const serviceOptions = servicesString.split(',').map(service => ({
+  label: service.trim(),
+  value: service.trim()
+}))
+
+// Generic review templates removed - now using AI generation with business context
 
 async function generateReviews() {
   if (form.value.selectedTopics.length === 0) {
     alert('Please select at least one review topic.')
+    return
+  }
+  if (form.value.selectedServices.length === 0) {
+    alert('Please select at least one service you brought.')
     return
   }
   
@@ -197,7 +170,8 @@ async function generateReviews() {
       method: 'POST',
       body: {
         teamLeader: form.value.teamLeader,
-        selectedTopics: form.value.selectedTopics
+        selectedTopics: form.value.selectedTopics,
+        selectedServices: form.value.selectedServices
       }
     })
     
@@ -216,15 +190,17 @@ async function selectReview(review) {
   try {
     await navigator.clipboard.writeText(review)
     alert('Review has copied to your clipboard, Continue to go to Google Review Page and paste it.')
-    window.open('https://g.page/r/CRtq3UXU7DKCEAI/review', '_blank')
+    const { public: { googleReviewUrl } } = useRuntimeConfig()
+    window.open(googleReviewUrl, '_blank')
   } catch (err) {
     alert('Please copy this review manually: ' + review)
-    window.open('https://g.page/r/CRtq3UXU7DKCEAI/review', '_blank')
+    const { public: { googleReviewUrl } } = useRuntimeConfig()
+    window.open(googleReviewUrl, '_blank')
   }
 }
 
 function resetForm() {
-  form.value = { teamLeader: '', selectedTopics: [] }
+  form.value = { teamLeader: '', selectedTopics: [], selectedServices: [] }
   showReviews.value = false
   generatedReviews.value = []
   isLoading.value = false

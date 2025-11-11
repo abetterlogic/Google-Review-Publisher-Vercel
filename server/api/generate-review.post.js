@@ -1,38 +1,41 @@
 export default defineEventHandler(async (event) => {
-  const { teamLeader, selectedTopics } = await readBody(event)
+  const { teamLeader, selectedTopics, selectedServices } = await readBody(event)
   const apiKey = process.env.OPENROUTER_API_KEY
   const aiModel = process.env.AI_MODEL
   
   console.log('API called with:', { teamLeader, selectedTopics })
   console.log('API Key exists:', !!apiKey)
   
-  const topicNames = {
-    delivery: 'Project delivery on time',
-    communication: 'Communication and support quality', 
-    technical: 'Technical expertise and innovation',
-    design: 'Website or app design quality',
-    seo: 'SEO and marketing performance',
-    value: 'Value for money',
-    problem_solving: 'Problem-solving and flexibility',
-    support: 'Post-launch support',
-    professionalism: 'Professionalism and reliability',
-    satisfaction: 'Overall satisfaction'
-  }
+  const reviewTopics = process.env.REVIEW_TOPICS.split(',')
+  
+  const topicNames = {}
+  reviewTopics.forEach((topic, index) => {
+    topicNames[`topic_${index}`] = topic.trim()
+  })
   
   const selectedTopicNames = selectedTopics.map(topic => topicNames[topic]).join(', ')
   
   const shouldMentionPrevious = selectedTopics.includes('problem_solving') || selectedTopics.includes('professionalism')
   
-  const prompt = `Generate exactly 2 different natural Google reviews for "ABL Smart Tech Private Company (A Better Logic)".
+  const businessName = process.env.BUSINESS_NAME
+  const natureOfBusiness = process.env.NATURE_OF_BUSINESS
+  const whatWeSell = process.env.WHAT_WE_SELL
+  
+  const prompt = `Generate exactly 2 different natural Google reviews for "${businessName}" - a ${natureOfBusiness} company.
 
 Context:
+- Business Type: ${natureOfBusiness}
+- Services/Products: ${whatWeSell}
 - Team Leader: ${teamLeader}
+- Services purchased: ${selectedServices.join(', ')}
 - Focus areas: ${selectedTopicNames}
 
 Requirements:
 - Each review 30-100 words
 - Sound like genuine customer reviews
-${shouldMentionPrevious ? '- Mention dissatisfaction with previous providers and highlight how ABL was better' : '- Focus on positive experience with ABL Smart Tech'}
+- Mention specific services from what we sell
+- Focus on the selected review topics/areas
+${shouldMentionPrevious ? '- Mention dissatisfaction with previous providers and highlight how this company was better' : '- Focus on positive experience'}
 - Natural, human tone
 - Make them different from each other
 
